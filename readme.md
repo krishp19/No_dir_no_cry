@@ -32,15 +32,16 @@ Flag	Description	Example
 -d, --delay	Delay between requests (in ms)	-d 1000 (1 second)
 -h, --help	Show help	node nodirnocry.js --help
 🧪 Examples
+
 Basic scan:
-
 node nodirnocry.js -u https://example.com -w wordlist.txt
+
 Multiple URLs:
-
 node nodirnocry.js -u https://site1.com,https://site2.com -w paths.txt
-Stealth mode (1 sec delay):
 
+Stealth mode (1 sec delay):
 node nodirnocry.js -u https://mysite.com -w wordlist.txt -d 1000
+
 📁 Wordlist Format
 Just one directory or filename per line:
 
