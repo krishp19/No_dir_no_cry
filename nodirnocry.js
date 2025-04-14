@@ -2,18 +2,20 @@ const { Command } = require('commander');
 const axios = require('axios');
 const chalk = require('chalk');
 const fs = require('fs');
-const path = require('path');
+const pLimit = require('p-limit').default;
 
 const program = new Command();
 
 program
   .option('-u, --url <urls>', 'target URL(s)', (val) => val.split(','))
   .option('-w, --wordlist <file>', 'path to wordlist')
-  .parse();  // No need to pass process.argv, commander does this automatically
+  .option('-c, --concurrency <number>', 'number of parallel requests', '5')
+  .parse();
 
 const options = program.opts();
+const concurrency = parseInt(options.concurrency) || 5;
 
-// Ensure URLs are correctly formatted (add http:// if not present)
+// Ensure URL is properly formatted
 function formatUrl(url) {
   if (!/^https?:\/\//i.test(url)) {
     url = 'http://' + url;
@@ -21,54 +23,60 @@ function formatUrl(url) {
   return url;
 }
 
-// Function to check a URL with a word from the wordlist
+// Function to check if a specific path exists
 async function checkURL(baseURL, word) {
   const formattedURL = formatUrl(baseURL);
+  const target = `${formattedURL}/${word}`;
+
   try {
-    const response = await axios.get(`${formattedURL}/${word}`, {
-      maxRedirects: 5, // Follow up to 5 redirects
-      validateStatus: (status) => status >= 200 && status < 400, // Handle 2xx and 3xx status codes
+    const response = await axios.get(target, {
+      maxRedirects: 5,
+      validateStatus: (status) => status >= 200 && status < 400, // Treat 2xx and 3xx as valid
     });
 
-    // If we get a 2xx or 3xx status, the route exists (valid)
     if (response.status >= 200 && response.status < 400) {
-      console.log(chalk.green(`Found: ${formattedURL}/${word} (Status: ${response.status})`));
+      console.log(chalk.green(`✔ Found: ${target} (Status: ${response.status})`));
     } else {
-      // If we get a 4xx or 5xx status, consider it a failure
-      console.log(chalk.yellow(`Not Found: ${formattedURL}/${word} (Status: ${response.status})`));
+      console.log(chalk.yellow(`✖ Not Found: ${target} (Status: ${response.status})`));
     }
   } catch (error) {
-    // Handle other types of errors like network errors, etc.
     if (error.response) {
-      // If we get a response with an error status
-      console.log(chalk.red(`Error: ${formattedURL}/${word} - Status: ${error.response.status}`));
+      console.log(chalk.red(`⚠ Error: ${target} - Status: ${error.response.status}`));
     } else {
-      console.log(chalk.red(`Error: ${formattedURL}/${word} - Network issue or timeout`));
+      console.log(chalk.red(`⚠ Error: ${target} - Network issue or timeout`));
     }
   }
 }
 
-// Function to start scanning for each URL
-async function startScan(urls, wordlist) {
+// Main scan function
+async function startScan(urls, wordlistPath) {
+  const words = fs.readFileSync(wordlistPath, 'utf-8')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  if (words.length === 0) {
+    console.log(chalk.yellow('⚠ Wordlist is empty.'));
+    return;
+  }
+
+  const limit = pLimit(concurrency);
+
   for (const url of urls) {
-    console.log(chalk.blue(`Starting scan on: ${url}`));
-    const words = fs.readFileSync(wordlist, 'utf-8').split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    console.log(chalk.blue(`\n🔍 Starting scan on: ${url}`));
 
-    if (words.length === 0) {
-      console.log(chalk.yellow('Warning: Wordlist is empty.'));
-      return;
-    }
+    const tasks = words.map(word => limit(() => checkURL(url, word)));
 
-    // Loop through each word in the wordlist and check
-    for (const word of words) {
-      await checkURL(url, word);
-    }
+    await Promise.all(tasks);
   }
+
+  console.log(chalk.cyan('\n✅ Scan completed.'));
 }
 
-// Validate if URLs and wordlist are provided
+// Validation
 if (!options.url || !options.wordlist) {
-  console.log(chalk.red('Error: URL(s) and wordlist are required.'));
+  console.log(chalk.red('❌ Error: Please provide both URL(s) and wordlist.'));
+  program.help();
   process.exit(1);
 }
 
