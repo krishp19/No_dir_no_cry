@@ -37,17 +37,16 @@ python nodirnocry.py [options]
 
 ---
 
-## 🔧 Options:
+## 🔧 Options
 
-| Flag              | Description                            | Example                                      |
-|-------------------|----------------------------------------|----------------------------------------------|
-| `-u`, `--url`     | Target URL(s), comma-separated         | `-u https://example.com,https://test.com`    |
-| `-w`, `--wordlist`| Path to the wordlist file              | `-w wordlist.txt`                            |
-| `-d`, `--delay`   | Delay between requests in milliseconds | `-d 1000` (1 second)                          |
-| `-c`, `--concurrency` | Number of concurrent requests     | `-c 10`                                      |
-| `-h`, `--help`    | Show help                              | `python nodirnocry.py --help`                |
-
----
+| Flag                  | Description                            | Example                                      |
+|-----------------------|----------------------------------------|----------------------------------------------|
+| `-u`, `--url`         | Target URL(s), comma-separated         | `-u https://example.com,https://test.com`    |
+| `-w`, `--wordlist`    | Path to the wordlist file              | `-w wordlist.txt`                            |
+| `-d`, `--delay`       | Delay between requests in milliseconds | `-d 1000` (1 second)                         |
+| `-c`, `--concurrency` | Number of concurrent requests          | `-c 10`                                      |
+| `-h`, `--help`        | Show help                              | `python nodirnocry.py --help`                |
+| `--proxy`             | Proxy to use for the requests          | `--proxy http://proxy.com:8080`              |
 
 ## 🧪 Examples
 
@@ -69,6 +68,10 @@ python nodirnocry.py -u https://mysite.com -w wordlist.txt -d 1000
 **Aggressive scan with concurrency:**
 ```bash
 python nodirnocry.py -u https://secure.net -w topdirs.txt -c 20
+```
+**Using Proxy:**
+```bash
+python nodirnocry.py -u https://example.com -w wordlist.txt --proxy http://proxy.com:8080
 ```
 
 ---
